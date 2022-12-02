@@ -49,7 +49,7 @@ var _ = Describe("testing restore InitInfo methods", func() {
 			PgWal:  newPgWal,
 		}
 
-		chg, err := initInfo.restoreCustomWalDir(context.TODO())
+		chg, err := initInfo.RestoreCustomWalDir(context.TODO())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(chg).To(BeTrue())
 
@@ -92,7 +92,7 @@ var _ = Describe("testing restore InitInfo methods", func() {
 		})
 
 		By("executing the restore custom wal dir function", func() {
-			chg, err := initInfo.restoreCustomWalDir(context.TODO())
+			chg, err := initInfo.RestoreCustomWalDir(context.TODO())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(chg).To(BeTrue())
 		})
@@ -134,7 +134,7 @@ var _ = Describe("testing restore InitInfo methods", func() {
 		err = os.Symlink(newPgWal, pgWal)
 		Expect(err).ToNot(HaveOccurred())
 
-		chg, err := initInfo.restoreCustomWalDir(context.TODO())
+		chg, err := initInfo.RestoreCustomWalDir(context.TODO())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(chg).To(BeFalse())
 	})
@@ -143,7 +143,7 @@ var _ = Describe("testing restore InitInfo methods", func() {
 		initInfo := InitInfo{
 			PgData: pgData,
 		}
-		chg, err := initInfo.restoreCustomWalDir(context.TODO())
+		chg, err := initInfo.RestoreCustomWalDir(context.TODO())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(chg).To(BeFalse())
 	})

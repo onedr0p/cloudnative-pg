@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,6 +48,7 @@ import (
 
 	apiv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/configuration"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/conditions"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/management/log"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/postgres"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/specs"
@@ -642,6 +644,10 @@ func (r *ClusterReconciler) ReconcilePods(ctx context.Context, cluster *apiv1.Cl
 ) (ctrl.Result, error) {
 	contextLogger := log.FromContext(ctx)
 
+	if err := r.ensureAllWalVolumesAreAttached(ctx, cluster, instancesStatus); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// If we are joining a node, we should wait for the process to finish
 	if resources.countRunningJobs() > 0 {
 		contextLogger.Debug("Waiting for jobs to finish",
@@ -747,6 +753,44 @@ func (r *ClusterReconciler) ensureHealthyPVCsAnnotation(
 		}
 	}
 
+	return nil
+}
+
+func (r *ClusterReconciler) ensureAllWalVolumesAreAttached(
+	ctx context.Context,
+	cluster *apiv1.Cluster,
+	instancesStatus postgres.PostgresqlStatusList,
+) error {
+	// if all wal volumes are not attached and everything is ready and we want them attached
+	if !meta.IsStatusConditionFalse(cluster.Status.Conditions, string(apiv1.ConditionWalVolumePendingAttachment)) &&
+		cluster.Status.ReadyInstances == cluster.Spec.Instances && cluster.ShouldCreateWalArchiveVolume() {
+		for _, instance := range instancesStatus.Items {
+			// we make sure they are not attached and if not we add the condition requesting them
+			if !walVolumesAlreadyAttached(*cluster, instance.Pod) {
+				condition := metav1.Condition{
+					Type:    string(apiv1.ConditionWalVolumePendingAttachment),
+					Status:  metav1.ConditionTrue,
+					Reason:  string(apiv1.ConditionReasonWalStorageSpecAdded),
+					Message: "spec present but volumes are not attached",
+				}
+				errCond := conditions.Update(ctx, r.Client, cluster, &condition)
+				if errCond != nil {
+					return errCond
+				}
+				return nil
+			}
+		}
+		condition := metav1.Condition{
+			Type:    string(apiv1.ConditionWalVolumePendingAttachment),
+			Status:  metav1.ConditionFalse,
+			Reason:  string(apiv1.ConditionReasonWalVolumesAttached),
+			Message: "all the wal volumes are attached",
+		}
+		errCond := conditions.Update(ctx, r.Client, cluster, &condition)
+		if errCond != nil {
+			return errCond
+		}
+	}
 	return nil
 }
 

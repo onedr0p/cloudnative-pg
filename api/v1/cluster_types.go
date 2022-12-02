@@ -481,6 +481,8 @@ const (
 	ConditionBackup ClusterConditionType = "LastBackupSucceeded"
 	// ConditionClusterReady represents whether a cluster is Ready
 	ConditionClusterReady ClusterConditionType = "Ready"
+	// ConditionWalVolumePendingAttachment represents the status of the wal volume
+	ConditionWalVolumePendingAttachment ClusterConditionType = "WALVolumePendingAttachment"
 )
 
 // ConditionStatus defines conditions of resources
@@ -526,6 +528,12 @@ const (
 
 	// ClusterIsNotReady means that the condition changed because the cluster is not ready
 	ClusterIsNotReady ConditionReason = "ClusterIsNotReady"
+
+	// ConditionReasonWalStorageSpecAdded  means that the condition changed because the WAL volume is attaching
+	ConditionReasonWalStorageSpecAdded ConditionReason = "WalStorageSpecAdded"
+
+	// ConditionReasonWalVolumesAttached means that all wal volumes are attached
+	ConditionReasonWalVolumesAttached ConditionReason = "WalVolumesAttached"
 )
 
 // EmbeddedObjectMetadata contains metadata to be inherited by all resources related to a Cluster
@@ -1973,6 +1981,11 @@ func (cluster *Cluster) ShouldCreateWalArchiveVolume() bool {
 // GetWalArchiveVolumeSuffix gets the wal archive volume name suffix
 func (cluster *Cluster) GetWalArchiveVolumeSuffix() string {
 	return "-wal"
+}
+
+// ContainsWalArchiveSuffix checks if the volume name contains the wal archive suffix
+func (cluster *Cluster) ContainsWalArchiveSuffix(pvcName string) bool {
+	return strings.HasSuffix(pvcName, cluster.GetWalArchiveVolumeSuffix())
 }
 
 // GetPostgresUID returns the UID that is being used for the "postgres"

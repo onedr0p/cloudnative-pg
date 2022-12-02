@@ -26,6 +26,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	apiv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
@@ -101,6 +102,18 @@ func (r *ClusterReconciler) rolloutDueToCondition(
 	}
 
 	return r.updatePrimaryPod(ctx, cluster, podList, primaryPostgresqlStatus.Pod, inPlacePossible, reason)
+}
+
+func walVolumesAlreadyAttached(cluster apiv1.Cluster, pod v1.Pod) bool {
+	for _, volume := range pod.Spec.Volumes {
+		if volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == specs.GetPVCName(cluster,
+			pod.Name, utils.PVCRolePgWal) {
+			if volume.PersistentVolumeClaim != nil {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (r *ClusterReconciler) updatePrimaryPod(
@@ -226,6 +239,11 @@ func IsPodNeedingRollout(status postgres.PostgresqlStatus, cluster *apiv1.Cluste
 	inPlacePossible bool,
 	reason string,
 ) {
+	if meta.IsStatusConditionTrue(cluster.Status.Conditions, string(apiv1.ConditionWalVolumePendingAttachment)) &&
+		!walVolumesAlreadyAttached(*cluster, status.Pod) {
+		return true, false, fmt.Sprintf("rebooting pod to attach WAL volume %s", status.Pod.Name)
+	}
+
 	if !status.IsPodReady || cluster.IsInstanceFenced(status.Pod.Name) || status.MightBeUnavailable {
 		return false, false, ""
 	}

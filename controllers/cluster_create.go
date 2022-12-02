@@ -29,6 +29,7 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -892,24 +893,12 @@ func (r *ClusterReconciler) createPrimaryInstance(
 		return ctrl.Result{}, fmt.Errorf("cannot generate node serial: %w", err)
 	}
 
-	if err := r.createPVC(
-		ctx,
-		cluster,
-		cluster.Spec.StorageConfiguration,
-		nodeSerial,
-		utils.PVCRolePgData,
-	); err != nil {
+	if err := r.createPVC(ctx, cluster, cluster.Spec.StorageConfiguration, nodeSerial, utils.PVCRolePgData); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
 	if cluster.ShouldCreateWalArchiveVolume() {
-		if err := r.createPVC(
-			ctx,
-			cluster,
-			*cluster.Spec.WalStorage,
-			nodeSerial,
-			utils.PVCRolePgWal,
-		); err != nil {
+		if err := r.createPVC(ctx, cluster, *cluster.Spec.WalStorage, nodeSerial, utils.PVCRolePgWal); err != nil {
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
 	}
@@ -1069,24 +1058,12 @@ func (r *ClusterReconciler) joinReplicaInstance(
 		return ctrl.Result{}, err
 	}
 
-	if err := r.createPVC(
-		ctx,
-		cluster,
-		cluster.Spec.StorageConfiguration,
-		nodeSerial,
-		utils.PVCRolePgData,
-	); err != nil {
+	if err := r.createPVC(ctx, cluster, cluster.Spec.StorageConfiguration, nodeSerial, utils.PVCRolePgData); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
 	if cluster.ShouldCreateWalArchiveVolume() {
-		if err := r.createPVC(
-			ctx,
-			cluster,
-			*cluster.Spec.WalStorage,
-			nodeSerial,
-			utils.PVCRolePgWal,
-		); err != nil {
+		if err := r.createPVC(ctx, cluster, *cluster.Spec.WalStorage, nodeSerial, utils.PVCRolePgWal); err != nil {
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
 	}
@@ -1190,6 +1167,13 @@ func (r *ClusterReconciler) reconcilePVCs(
 	utils.InheritLabels(&pod.ObjectMeta, cluster.Labels,
 		cluster.GetFixedInheritedLabels(), configuration.Current)
 
+	if meta.IsStatusConditionTrue(cluster.Status.Conditions, string(apiv1.ConditionWalVolumePendingAttachment)) {
+		err = r.addWalDirAndInitContainer(ctx, cluster, resources, pod, nodeSerial)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	if err := r.Create(ctx, pod); err != nil {
 		if apierrs.IsAlreadyExists(err) {
 			// This Pod was already created, maybe the cache is stale.
@@ -1203,6 +1187,24 @@ func (r *ClusterReconciler) reconcilePVCs(
 
 	// Do another reconcile cycle after handling a dangling PVC
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+}
+
+func (r *ClusterReconciler) addWalDirAndInitContainer(ctx context.Context,
+	cluster *apiv1.Cluster,
+	resources *managedResources,
+	pod *corev1.Pod,
+	nodeSerial int,
+) error {
+	pvcName := specs.GetPVCName(*cluster, pod.Name, utils.PVCRolePgWal)
+	pvc := resources.getPVC(pvcName)
+	if pvc == nil {
+		err := r.createPVC(ctx, cluster, *cluster.Spec.WalStorage, nodeSerial, utils.PVCRolePgWal)
+		if err != nil {
+			return err
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, specs.CreateWalDirCopyContainer(*cluster))
+	}
+	return nil
 }
 
 // electPvcToReattach chooses a PVC between the initializing and the dangling ones that should be reattached
@@ -1256,8 +1258,7 @@ func (r *ClusterReconciler) createPVC(
 	ctx context.Context,
 	cluster *apiv1.Cluster,
 	storageConfiguration apiv1.StorageConfiguration,
-	nodeSerial int,
-	role utils.PVCRole,
+	nodeSerial int, role utils.PVCRole,
 ) error {
 	contextLogger := log.FromContext(ctx)
 

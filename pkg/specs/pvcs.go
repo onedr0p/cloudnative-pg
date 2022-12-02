@@ -23,6 +23,7 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/strings/slices"
@@ -72,6 +73,8 @@ type PVCUsageStatus struct {
 
 	// List of PVCs that are unusable (they are part of an incomplete group)
 	Unusable []string
+
+	AlreadyAttachedWalVolume []string
 }
 
 // CreatePVC create spec of a PVC, given its name and the storage configuration
@@ -217,7 +220,8 @@ instancesLoop:
 		pvcNames := getNamesFromPVCList(pvcs)
 
 		// If we have less PVCs that the expected number, all the instance PVCs are unusable
-		if len(expectedPVCs) > len(pvcNames) {
+		if len(expectedPVCs) > len(pvcNames) && meta.IsStatusConditionFalse(cluster.Status.Conditions,
+			string(apiv1.ConditionWalVolumePendingAttachment)) {
 			result.Unusable = append(result.Unusable, pvcNames...)
 			continue instancesLoop
 		}
@@ -233,7 +237,8 @@ instancesLoop:
 		// If we have PVCs that we don't expect, these PVCs need to
 		// be classified as unusable
 		for _, pvcName := range pvcNames {
-			if !slices.Contains(expectedPVCs, pvcName) {
+			if !slices.Contains(expectedPVCs, pvcName) && meta.IsStatusConditionFalse(cluster.Status.Conditions,
+				string(apiv1.ConditionWalVolumePendingAttachment)) {
 				result.Unusable = append(result.Unusable, pvcName)
 				contextLogger.Warning("found more PVC than those expected",
 					"instance", instanceName,
@@ -338,7 +343,8 @@ func DoesPVCBelongToInstance(cluster *apiv1.Cluster, instanceName, resourceName 
 func getExpectedInstancePVCNames(cluster *apiv1.Cluster, instanceName string) []string {
 	names := []string{instanceName}
 
-	if cluster.ShouldCreateWalArchiveVolume() {
+	if cluster.ShouldCreateWalArchiveVolume() && !meta.IsStatusConditionTrue(cluster.Status.Conditions,
+		string(apiv1.ConditionWalVolumePendingAttachment)) {
 		names = append(names, instanceName+cluster.GetWalArchiveVolumeSuffix())
 	}
 

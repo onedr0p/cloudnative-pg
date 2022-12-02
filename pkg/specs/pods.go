@@ -76,6 +76,9 @@ const (
 	// controller inside the Pod file system
 	BootstrapControllerContainerName = "bootstrap-controller"
 
+	// WalDirCopyContainerName is the name of the container copying the WAL directory
+	WalDirCopyContainerName = "wal-dir-copy"
+
 	// PgDataPath is the path to PGDATA variable
 	PgDataPath = "/var/lib/postgresql/data/pgdata"
 

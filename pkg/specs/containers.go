@@ -49,6 +49,28 @@ func createBootstrapContainer(cluster apiv1.Cluster) corev1.Container {
 	return container
 }
 
+// CreateWalDirCopyContainer creates an init container to copy a wal directory from pgdata to a new volume
+func CreateWalDirCopyContainer(cluster apiv1.Cluster) corev1.Container {
+	container := corev1.Container{
+		Name:            WalDirCopyContainerName,
+		Image:           configuration.Current.OperatorImageName,
+		ImagePullPolicy: cluster.Spec.ImagePullPolicy,
+		Command: []string{
+			"/controller/manager",
+			"waldir-copy",
+			PgDataPath,
+			PgWalVolumePath,
+		},
+		VolumeMounts:    createPostgresVolumeMounts(cluster),
+		Resources:       cluster.Spec.Resources,
+		SecurityContext: CreateContainerSecurityContext(),
+	}
+
+	addManagerLoggingOptions(cluster, &container)
+
+	return container
+}
+
 // addManagerLoggingOptions propagate the logging configuration
 // to the manager inside the generated pod.
 func addManagerLoggingOptions(cluster apiv1.Cluster, container *corev1.Container) {

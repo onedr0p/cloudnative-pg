@@ -19,7 +19,6 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -1136,8 +1135,8 @@ func (r *Cluster) validateStorageChange(old *Cluster) field.ErrorList {
 		result,
 		validateStorageConfigurationChange(
 			"storage",
-			old.Spec.StorageConfiguration,
-			r.Spec.StorageConfiguration,
+			&old.Spec.StorageConfiguration,
+			&r.Spec.StorageConfiguration,
 		)...,
 	)
 }
@@ -1149,16 +1148,7 @@ func (r *Cluster) validateWalStorageChange(old *Cluster) field.ErrorList {
 
 	var result field.ErrorList
 
-	if old.Spec.WalStorage == nil && r.Spec.WalStorage != nil {
-		return append(result,
-			field.Invalid(
-				field.NewPath("spec", "walStorage"),
-				r.Spec.WalStorage,
-				"walStorage can only be set at cluster creation"),
-		)
-	}
-
-	if old.Spec.WalStorage != nil && r.Spec.WalStorage == nil {
+	if r.Spec.WalStorage == nil {
 		return append(result,
 			field.Invalid(
 				field.NewPath("spec", "walStorage"),
@@ -1167,22 +1157,8 @@ func (r *Cluster) validateWalStorageChange(old *Cluster) field.ErrorList {
 		)
 	}
 
-	// We need to make sure that only the size of the volume can change
-	oldNormalized := old.Spec.WalStorage.DeepCopy()
-	oldNormalized.Size = ""
-	newNormalized := r.Spec.WalStorage.DeepCopy()
-	newNormalized.Size = ""
-
-	if !reflect.DeepEqual(oldNormalized, newNormalized) {
-		result = append(result, field.Invalid(
-			field.NewPath("spec", "walStorage"),
-			r.Spec.WalStorage,
-			"cannot change walStorage parameter after initialization"),
-		)
-	}
-
 	// we validate the size change
-	storageErrs := validateStorageConfigurationChange("walStorage", *old.Spec.WalStorage, *r.Spec.WalStorage)
+	storageErrs := validateStorageConfigurationChange("walStorage", old.Spec.WalStorage, r.Spec.WalStorage)
 
 	return append(result, storageErrs...)
 }
@@ -1190,20 +1166,20 @@ func (r *Cluster) validateWalStorageChange(old *Cluster) field.ErrorList {
 // validateStorageConfigurationChange generates an error list by comparing two StorageConfiguration
 func validateStorageConfigurationChange(
 	structPath string,
-	oldStorage StorageConfiguration,
-	newStorage StorageConfiguration,
+	oldStorage *StorageConfiguration,
+	newStorage *StorageConfiguration,
 ) field.ErrorList {
 	var result field.ErrorList
+
+	result = append(result, validateStorageConfigurationSize(structPath, *newStorage)...)
+	if len(result) != 0 || oldStorage == nil {
+		return result
+	}
 
 	oldSize, err := resource.ParseQuantity(oldStorage.Size)
 	if err != nil {
 		// Can't read the old size, so can't tell if the new size is greater
 		// or less
-		return result
-	}
-
-	result = append(result, validateStorageConfigurationSize(structPath, newStorage)...)
-	if len(result) != 0 {
 		return result
 	}
 

@@ -31,6 +31,7 @@ import (
 	"github.com/cloudnative-pg/cloudnative-pg/internal/cmd/manager/pgbouncer"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/cmd/manager/show"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/cmd/manager/walarchive"
+	"github.com/cloudnative-pg/cloudnative-pg/internal/cmd/manager/waldircopy"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/cmd/manager/walrestore"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/cmd/versions"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/management/log"
@@ -57,6 +58,7 @@ func main() {
 	cmd.AddCommand(instance.NewCmd())
 	cmd.AddCommand(show.NewCmd())
 	cmd.AddCommand(walarchive.NewCmd())
+	cmd.AddCommand(waldircopy.NewCmd())
 	cmd.AddCommand(walrestore.NewCmd())
 	cmd.AddCommand(versions.NewCmd())
 	cmd.AddCommand(pgbouncer.NewCmd())

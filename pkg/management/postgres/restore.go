@@ -108,7 +108,7 @@ func (info InitInfo) Restore(ctx context.Context) error {
 		return err
 	}
 
-	if _, err := info.restoreCustomWalDir(ctx); err != nil {
+	if _, err := info.RestoreCustomWalDir(ctx); err != nil {
 		return err
 	}
 
@@ -144,9 +144,9 @@ func (info InitInfo) Restore(ctx context.Context) error {
 	return info.ConfigureInstanceAfterRestore(cluster, env)
 }
 
-// restoreCustomWalDir moves the current pg_wal data to the specified custom wal dir and applies the symlink
+// RestoreCustomWalDir moves the current pg_wal data to the specified custom wal dir and applies the symlink
 // returns indicating if any changes were made and any error encountered in the process
-func (info InitInfo) restoreCustomWalDir(ctx context.Context) (bool, error) {
+func (info InitInfo) RestoreCustomWalDir(ctx context.Context) (bool, error) {
 	if info.PgWal == "" {
 		return false, nil
 	}
