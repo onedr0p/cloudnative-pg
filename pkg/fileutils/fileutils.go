@@ -339,8 +339,25 @@ func MoveDirectoryContent(sourceDirectory, destinationDirectory string) error {
 	}
 	// we first copy the files without deleting them, this is to avoid incosistent states
 	for _, name := range names {
-		if err = CopyFile(filepath.Join(sourceDirectory, name), filepath.Join(destinationDirectory, name)); err != nil {
+		fi, err := os.Stat(filepath.Join(sourceDirectory, name))
+		if err != nil {
 			return err
+		}
+
+		if fi.IsDir() {
+			err := EnsureDirectoryExist(filepath.Join(destinationDirectory, name))
+			if err != nil {
+				return err
+			}
+			err = MoveDirectoryContent(filepath.Join(sourceDirectory, name), filepath.Join(destinationDirectory, name))
+			if err != nil {
+				return err
+			}
+		} else {
+			err = CopyFile(filepath.Join(sourceDirectory, name), filepath.Join(destinationDirectory, name))
+			if err != nil {
+				return err
+			}
 		}
 	}
 
