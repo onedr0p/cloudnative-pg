@@ -105,12 +105,14 @@ func (r *ClusterReconciler) rolloutDueToCondition(
 }
 
 func walVolumesAlreadyAttached(cluster apiv1.Cluster, pod v1.Pod) bool {
+	if pod.Spec.Volumes == nil {
+		return false
+	}
+	pvcName := specs.GetPVCName(cluster, pod.Name, utils.PVCRolePgWal)
 	for _, volume := range pod.Spec.Volumes {
-		if volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == specs.GetPVCName(cluster,
-			pod.Name, utils.PVCRolePgWal) {
-			if volume.PersistentVolumeClaim != nil {
-				return true
-			}
+		if volume.PersistentVolumeClaim != nil &&
+			volume.PersistentVolumeClaim.ClaimName == pvcName {
+			return true
 		}
 	}
 	return false

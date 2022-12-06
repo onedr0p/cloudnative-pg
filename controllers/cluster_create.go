@@ -893,12 +893,24 @@ func (r *ClusterReconciler) createPrimaryInstance(
 		return ctrl.Result{}, fmt.Errorf("cannot generate node serial: %w", err)
 	}
 
-	if err := r.createPVC(ctx, cluster, cluster.Spec.StorageConfiguration, nodeSerial, utils.PVCRolePgData); err != nil {
+	if err := r.createPVC(
+		ctx,
+		cluster,
+		cluster.Spec.StorageConfiguration,
+		nodeSerial,
+		utils.PVCRolePgData,
+	); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
 	if cluster.ShouldCreateWalArchiveVolume() {
-		if err := r.createPVC(ctx, cluster, *cluster.Spec.WalStorage, nodeSerial, utils.PVCRolePgWal); err != nil {
+		if err := r.createPVC(
+			ctx,
+			cluster,
+			*cluster.Spec.WalStorage,
+			nodeSerial,
+			utils.PVCRolePgWal,
+		); err != nil {
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
 	}
@@ -1058,12 +1070,24 @@ func (r *ClusterReconciler) joinReplicaInstance(
 		return ctrl.Result{}, err
 	}
 
-	if err := r.createPVC(ctx, cluster, cluster.Spec.StorageConfiguration, nodeSerial, utils.PVCRolePgData); err != nil {
+	if err := r.createPVC(
+		ctx,
+		cluster,
+		cluster.Spec.StorageConfiguration,
+		nodeSerial,
+		utils.PVCRolePgData,
+	); err != nil {
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
 	if cluster.ShouldCreateWalArchiveVolume() {
-		if err := r.createPVC(ctx, cluster, *cluster.Spec.WalStorage, nodeSerial, utils.PVCRolePgWal); err != nil {
+		if err := r.createPVC(
+			ctx,
+			cluster,
+			*cluster.Spec.WalStorage,
+			nodeSerial,
+			utils.PVCRolePgWal,
+		); err != nil {
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
 	}
@@ -1168,8 +1192,7 @@ func (r *ClusterReconciler) reconcilePVCs(
 		cluster.GetFixedInheritedLabels(), configuration.Current)
 
 	if meta.IsStatusConditionTrue(cluster.Status.Conditions, string(apiv1.ConditionWalVolumePendingAttachment)) {
-		err = r.addWalDirAndInitContainer(ctx, cluster, resources, pod, nodeSerial)
-		if err != nil {
+		if err := r.addWalDirAndInitContainer(ctx, cluster, resources, pod, nodeSerial); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -1198,8 +1221,13 @@ func (r *ClusterReconciler) addWalDirAndInitContainer(ctx context.Context,
 	pvcName := specs.GetPVCName(*cluster, pod.Name, utils.PVCRolePgWal)
 	pvc := resources.getPVC(pvcName)
 	if pvc == nil {
-		err := r.createPVC(ctx, cluster, *cluster.Spec.WalStorage, nodeSerial, utils.PVCRolePgWal)
-		if err != nil {
+		if err := r.createPVC(
+			ctx,
+			cluster,
+			*cluster.Spec.WalStorage,
+			nodeSerial,
+			utils.PVCRolePgWal,
+		); err != nil {
 			return err
 		}
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, specs.CreateWalDirCopyContainer(*cluster))

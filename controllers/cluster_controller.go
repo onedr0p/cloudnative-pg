@@ -784,7 +784,7 @@ func (r *ClusterReconciler) ensureAllWalVolumesAreAttached(
 			Type:    string(apiv1.ConditionWalVolumePendingAttachment),
 			Status:  metav1.ConditionFalse,
 			Reason:  string(apiv1.ConditionReasonWalVolumesAttached),
-			Message: "all the wal volumes are attached",
+			Message: "all the WAL volumes are attached",
 		}
 		errCond := conditions.Update(ctx, r.Client, cluster, &condition)
 		if errCond != nil {
