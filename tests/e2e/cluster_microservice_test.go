@@ -24,6 +24,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	apiv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/versions"
 	"github.com/cloudnative-pg/cloudnative-pg/tests"
 	testsUtils "github.com/cloudnative-pg/cloudnative-pg/tests/utils"
@@ -188,7 +189,7 @@ func assertCreateTableWithDataOnSourceCluster(
 	clusterName string,
 ) {
 	By("generate super user password,rw service name on source cluster", func() {
-		generatedSuperuserPassword, err := testsUtils.GetPassword(clusterName, namespace, testsUtils.Superuser, env)
+		generatedSuperuserPassword, err := testsUtils.GetPassword(clusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 		Expect(err).ToNot(HaveOccurred())
 		rwService := fmt.Sprintf("%v-rw.%v.svc", clusterName, namespace)
 		By("create user, insert record in new table, assign new user as owner "+
@@ -210,7 +211,7 @@ func assertTableAndDataOnImportedCluster(
 ) {
 	By("verifying presence of table and data from source in imported cluster", func() {
 		generatedSuperuserPassword, err := testsUtils.GetPassword(importedClusterName,
-			namespace, testsUtils.Superuser, env)
+			namespace, apiv1.SuperUserSecretSuffix, env)
 		Expect(err).ToNot(HaveOccurred())
 		importedrwService := fmt.Sprintf("%v-rw.%v.svc", importedClusterName, namespace)
 		By("Verifying imported table has owner app user", func() {
@@ -250,7 +251,7 @@ func assertImportRenamesSelectedDatabase(
 
 	By("creating multiple dbs on source and set ownership to app", func() {
 		rwService := testsUtils.CreateServiceFQDN(namespace, testsUtils.GetReadWriteServiceName(clusterName))
-		getSuperUserPassword, err := testsUtils.GetPassword(clusterName, namespace, testsUtils.Superuser, env)
+		getSuperUserPassword, err := testsUtils.GetPassword(clusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 		Expect(err).ToNot(HaveOccurred())
 		for _, db := range dbList {
 			// Create database
@@ -279,7 +280,7 @@ func assertImportRenamesSelectedDatabase(
 	})
 
 	By(fmt.Sprintf("creating table '%s' and insert records on selected db %v", tableName, dbToImport), func() {
-		getSuperUserPassword, err := testsUtils.GetPassword(clusterName, namespace, testsUtils.Superuser, env)
+		getSuperUserPassword, err := testsUtils.GetPassword(clusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 		Expect(err).ToNot(HaveOccurred())
 		rwService := testsUtils.CreateServiceFQDN(namespace, testsUtils.GetReadWriteServiceName(clusterName))
 		// set role app on db2
@@ -306,7 +307,7 @@ func assertImportRenamesSelectedDatabase(
 	AssertDataExpectedCount(namespace, importedClusterName, tableName, 2, psqlClientPod)
 
 	By("verifying that only 'app' DB exists in the imported cluster", func() {
-		getSuperUserPassword, err := testsUtils.GetPassword(importedClusterName, namespace, testsUtils.Superuser, env)
+		getSuperUserPassword, err := testsUtils.GetPassword(importedClusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 		Expect(err).ToNot(HaveOccurred())
 		rwService := testsUtils.CreateServiceFQDN(namespace, testsUtils.GetReadWriteServiceName(importedClusterName))
 		dbList, _, err := testsUtils.RunQueryFromPod(psqlClientPod, rwService,

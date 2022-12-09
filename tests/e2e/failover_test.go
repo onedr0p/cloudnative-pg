@@ -131,8 +131,7 @@ var _ = Describe("Failover", Label(tests.LabelSelfHealing), func() {
 				namespace,
 				clusterName,
 				psqlClientPod,
-				utils.Superuser,
-				utils.PostgresUser,
+				apiv1.SuperUserSecretSuffix,
 				utils.AppDBName,
 				query,
 			)
@@ -164,7 +163,7 @@ var _ = Describe("Failover", Label(tests.LabelSelfHealing), func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// Get the current lsn
-			pass, err := utils.GetPassword(clusterName, namespace, utils.Superuser, env)
+			pass, err := utils.GetPassword(clusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 			Expect(err).ToNot(HaveOccurred())
 			rwService, err := utils.GetHostName(namespace, clusterName, env)
 			Expect(err).ToNot(HaveOccurred())
@@ -201,8 +200,7 @@ var _ = Describe("Failover", Label(tests.LabelSelfHealing), func() {
 					namespace,
 					clusterName,
 					psqlClientPod,
-					utils.Superuser,
-					utils.PostgresUser,
+					apiv1.SuperUserSecretSuffix,
 					utils.AppDBName,
 					query,
 				)

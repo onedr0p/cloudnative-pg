@@ -26,16 +26,6 @@ import (
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/certs"
 )
 
-// UserPrefix as prefix for postgres and app
-type UserPrefix string
-
-const (
-	// Superuser as prefix for postgres
-	Superuser UserPrefix = "superuser"
-	// App prefix for app user
-	App UserPrefix = "app"
-)
-
 // CreateSecretCA generates a CA for the cluster and return the cluster and the key pair
 func CreateSecretCA(
 	namespace string,
@@ -72,10 +62,10 @@ func CreateSecretCA(
 	return cluster, caPair, nil
 }
 
-// GetPassword generates password and return it as per user prefix
-func GetPassword(clusterName, namespace string, prefix UserPrefix, env *TestingEnvironment) (string, error) {
+// GetPassword retrieve password from secrets and return it as per user suffix
+func GetPassword(clusterName, namespace string, secretSuffix string, env *TestingEnvironment) (string, error) {
 	// Get the password as per user prefix in secret
-	secretName := clusterName + "-" + string(prefix)
+	secretName := clusterName + secretSuffix
 	secret := &corev1.Secret{}
 	secretNamespacedName := types.NamespacedName{
 		Namespace: namespace,
@@ -87,4 +77,27 @@ func GetPassword(clusterName, namespace string, prefix UserPrefix, env *TestingE
 	}
 	generatedPassword := string(secret.Data["password"])
 	return generatedPassword, nil
+}
+
+// GetCredentials retrieve username and password from secrets and return it as per user suffix
+func GetCredentials(
+	clusterName, namespace string,
+	secretSuffix string,
+	env *TestingEnvironment) (
+	string, string, error,
+) {
+	// Get the password as per user suffix in secret
+	secretName := clusterName + secretSuffix
+	secret := &corev1.Secret{}
+	secretNamespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      secretName,
+	}
+	err := env.Client.Get(env.Ctx, secretNamespacedName, secret)
+	if err != nil {
+		return "", "", err
+	}
+	username := string(secret.Data["username"])
+	password := string(secret.Data["password"])
+	return username, password, nil
 }

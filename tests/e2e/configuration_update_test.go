@@ -451,7 +451,7 @@ var _ = Describe("Configuration update with primaryUpdateMethod", Label(tests.La
 
 				oldPrimaryPodName = primaryPodInfo.GetName()
 
-				pass, err := utils.GetPassword(clusterName, namespace, utils.Superuser, env)
+				pass, err := utils.GetPassword(clusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 				Expect(err).ToNot(HaveOccurred())
 				host, err := utils.GetHostName(namespace, clusterName, env)
 				Expect(err).ToNot(HaveOccurred())

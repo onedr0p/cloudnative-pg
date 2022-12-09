@@ -91,7 +91,7 @@ var _ = Describe("Imports with Monolithic Approach", Label(tests.LabelImportingD
 				databaseSuperUser)
 			sourceClusterHost, err = testsUtils.GetHostName(namespace, sourceClusterName, env)
 			Expect(err).ToNot(HaveOccurred())
-			sourceClusterPass, err = testsUtils.GetPassword(sourceClusterName, namespace, testsUtils.Superuser, env)
+			sourceClusterPass, err = testsUtils.GetPassword(sourceClusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 			Expect(err).ToNot(HaveOccurred())
 			_, _, err = testsUtils.RunQueryFromPod(
 				psqlClientPod,
@@ -174,7 +174,7 @@ var _ = Describe("Imports with Monolithic Approach", Label(tests.LabelImportingD
 		By("verifying that the specified source databases were imported", func() {
 			targetClusterHost, err = testsUtils.GetHostName(namespace, targetClusterName, env)
 			Expect(err).ToNot(HaveOccurred())
-			targetClusterPass, err = testsUtils.GetPassword(targetClusterName, namespace, testsUtils.Superuser, env)
+			targetClusterPass, err = testsUtils.GetPassword(targetClusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 			Expect(err).ToNot(HaveOccurred())
 			for _, database := range sourceDatabases {
 				databaseEntryQuery := fmt.Sprintf("SELECT datname FROM pg_database where datname='%v'", database)

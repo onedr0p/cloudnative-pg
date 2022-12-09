@@ -78,7 +78,7 @@ var _ = Describe("Cluster setup", Label(tests.LabelSmoke, tests.LabelBasic), fun
 
 			// Put something in the database. We'll check later if it
 			// still exists
-			superUserPass, err := testsUtils.GetPassword(clusterName, namespace, testsUtils.Superuser, env)
+			superUserPass, err := testsUtils.GetPassword(clusterName, namespace, apiv1.SuperUserSecretSuffix, env)
 			Expect(err).NotTo(HaveOccurred())
 			host, err := testsUtils.GetHostName(namespace, clusterName, env)
 			Expect(err).NotTo(HaveOccurred())
@@ -127,8 +127,7 @@ var _ = Describe("Cluster setup", Label(tests.LabelSmoke, tests.LabelBasic), fun
 					namespace,
 					clusterName,
 					psqlClientPod,
-					testsUtils.Superuser,
-					testsUtils.PostgresUser,
+					apiv1.SuperUserSecretSuffix,
 					testsUtils.AppDBName,
 					query,
 				)
