@@ -37,12 +37,11 @@ import (
 func WaitKubernetesAPIServer(ctx context.Context, client client.Client, clusterObjectKey client.ObjectKey) error {
 	var cluster v12.Cluster
 	readinessCheckRetry := wait.Backoff{
-		Steps:    10,
+		Steps:    5,
 		Duration: 10 * time.Millisecond,
 		Factor:   5.0,
 		Jitter:   0.1,
 	}
-
 	if err := retry.OnError(readinessCheckRetry, func(err error) bool { return true }, func() (err error) {
 		return client.Get(ctx, clusterObjectKey, &cluster)
 	}); err != nil {

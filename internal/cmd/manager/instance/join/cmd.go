@@ -85,10 +85,11 @@ func joinSubCommand(ctx context.Context, instance *postgres.Instance, info postg
 		log.Error(err, "Error creating Kubernetes client")
 		return err
 	}
+
 	if err := istio.WaitKubernetesAPIServer(
 		ctx,
 		client,
-		ctrl.ObjectKey{Namespace: info.Namespace, Name: info.ClusterName},
+		ctrl.ObjectKey{Namespace: instance.Namespace, Name: instance.ClusterName},
 	); err != nil {
 		return err
 	}
