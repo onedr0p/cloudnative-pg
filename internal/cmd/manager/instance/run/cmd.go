@@ -19,10 +19,12 @@ package run
 
 import (
 	"context"
-	"github.com/cloudnative-pg/cloudnative-pg/internal/istio"
-	"github.com/cloudnative-pg/cloudnative-pg/pkg/management"
 	"os"
 	"path/filepath"
+
+
+	"github.com/cloudnative-pg/cloudnative-pg/internal/istio"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/management"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -37,9 +39,11 @@ import (
 
 	apiv1 "github.com/cloudnative-pg/cloudnative-pg/api/v1"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/cmd/manager/instance/run/lifecycle"
+	"github.com/cloudnative-pg/cloudnative-pg/internal/istio"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/management/controller"
 	"github.com/cloudnative-pg/cloudnative-pg/internal/management/controller/slots/runner"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/concurrency"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/management"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/management/log"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/management/postgres"
 	"github.com/cloudnative-pg/cloudnative-pg/pkg/management/postgres/logpipe"
