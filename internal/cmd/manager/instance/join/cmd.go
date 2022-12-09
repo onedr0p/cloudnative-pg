@@ -80,7 +80,7 @@ func NewCmd() *cobra.Command {
 }
 
 func joinSubCommand(ctx context.Context, instance *postgres.Instance, info postgres.InitInfo) error {
-	client, err := management.NewControllerRuntimeClient()
+	apiClient, err := management.NewControllerRuntimeClient()
 	if err != nil {
 		log.Error(err, "Error creating Kubernetes client")
 		return err
@@ -88,7 +88,7 @@ func joinSubCommand(ctx context.Context, instance *postgres.Instance, info postg
 
 	if err := istio.WaitKubernetesAPIServer(
 		ctx,
-		client,
+		apiClient,
 		ctrl.ObjectKey{Namespace: instance.Namespace, Name: instance.ClusterName},
 	); err != nil {
 		return err
@@ -110,7 +110,7 @@ func joinSubCommand(ctx context.Context, instance *postgres.Instance, info postg
 	}
 	// Let's download the crypto material from the cluster
 	// secrets.
-	reconciler := controller.NewInstanceReconciler(instance, client, metricServer)
+	reconciler := controller.NewInstanceReconciler(instance, apiClient, metricServer)
 	if err != nil {
 		log.Error(err, "Error creating reconciler to download certificates")
 		return err

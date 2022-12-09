@@ -19,6 +19,8 @@ package run
 
 import (
 	"context"
+	"github.com/cloudnative-pg/cloudnative-pg/internal/istio"
+	"github.com/cloudnative-pg/cloudnative-pg/pkg/management"
 	"os"
 	"path/filepath"
 
@@ -96,6 +98,25 @@ func runSubCommand(ctx context.Context, instance *postgres.Instance) error {
 	setupLog.Info("Starting CloudNativePG Instance Manager",
 		"version", versions.Version,
 		"build", versions.Info)
+
+	apiClient, err := management.NewControllerRuntimeClient()
+	if err != nil {
+		log.Error(err, "Error creating Kubernetes client")
+		return err
+	}
+
+	if err := istio.WaitKubernetesAPIServer(
+		ctx,
+		apiClient,
+		client.ObjectKey{Namespace: instance.Namespace, Name: instance.ClusterName},
+	); err != nil {
+		return err
+	}
+	defer func() {
+		if err := istio.QuitIstioProxy(); err != nil {
+			log.Error(err, "Error while asking istio-proxy to finish")
+		}
+	}()
 
 	mgr, err := ctrl.NewManager(config.GetConfigOrDie(), ctrl.Options{
 		Scheme:    scheme,

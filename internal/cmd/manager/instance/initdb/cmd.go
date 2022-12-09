@@ -127,14 +127,14 @@ func NewCmd() *cobra.Command {
 }
 
 func initSubCommand(ctx context.Context, info postgres.InitInfo) error {
-	client, err := management.NewControllerRuntimeClient()
+	apiClient, err := management.NewControllerRuntimeClient()
 	if err != nil {
 		log.Error(err, "Error creating Kubernetes client")
 		return err
 	}
 	if err := istio.WaitKubernetesAPIServer(
 		ctx,
-		client,
+		apiClient,
 		ctrl.ObjectKey{Namespace: info.Namespace, Name: info.ClusterName},
 	); err != nil {
 		return err
